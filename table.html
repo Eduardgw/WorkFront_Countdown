@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/icon" href="./icon.ico?v=HASH_UNIQUE">
+    <title>W.F.C - Inserir dados</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th,
+        td {
+            border: 1px solid rgb(136, 136, 136);
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: rgba(46, 46, 46, 0.322);
+        }
+
+        tr:nth-child(even) {
+            background-color: white;
+        }
+
+        tr:nth-child(odd) {
+            background-color: rgba(65, 65, 65, 0.322);
+        }
+
+        /* Defina o tamanho das colunas de janeiro a dezembro */
+        .month-cell {
+            width: 12ch;
+        }
+
+        /* Classe para centralizar o contêiner do botão */
+        .centered-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 20px;
+            gap: 10px;
+        }
+
+        /* Seu estilo de botão */
+        .styled-button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .styled-button:hover {
+            background-color: #45a049;
+        }
+
+        /* Estilo para a mensagem de "Tabela Salva" */
+        .message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #45a049;; /* Cor do texto da mensagem */
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 80px;
+            z-index: 9999; /* Certifique-se de que a mensagem esteja acima de outros elementos */
+            opacity: 0; /* Começa como totalmente transparente */
+            transition: opacity 1s ease; /* Efeito de transição de opacidade */
+            pointer-events: none; /* Não é selecionável */
+            user-select: none; /* Não é selecionável */
+            -webkit-text-stroke-width: 1px; /* Adicione um contorno */
+            -webkit-text-stroke-color: #317935;; /* Cor do contorno */
+        }
+
+        /* Classe para tornar a mensagem visível */
+        .message-visible {
+            opacity: 1; /* Torna a mensagem totalmente visível */
+        }
+        .styled-semester-button {
+            background-color: rgba(0, 119, 255, 0.644); /* Cor de fundo padrão */
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .styled-semester-button.selected {
+            background-color: rgba(1, 65, 139, 0.644); /* Cor de fundo quando selecionado */
+        }
+    </style>
+    <audio id="audio-player" style="display: none;">
+        <source src="sound_notification.wav" type="audio/mpeg">
+    </audio> 
+    <script>
+        // Função para tornar as células editáveis, remover o zero, permitir apenas números e limitar a 2 caracteres
+        function EditableCell(cell, maxLength) {
+    cell.setAttribute("contenteditable", "true");
+    cell.addEventListener("focus", function () {
+        if (cell.textContent === "0") {
+            cell.textContent = "";
+        }
+    });
+    cell.addEventListener("blur", function () {
+        if (cell.textContent === "") {
+            cell.textContent = "0";
+        }
+    });
+    cell.addEventListener("keydown", function (event) {
+        // Permitir apenas números, vírgula e tecla Backspace
+        if (event.key !== "Backspace" && event.key !== "," && isNaN(event.key)) {
+            event.preventDefault();
+        }
+
+        // Limitar o comprimento máximo do texto a maxLength
+        if (cell.textContent.length >= 6 && event.key !== "Backspace") {
+            event.preventDefault();
+        }
+    });
+}
+
+
+
+
+
+
+            function populateTable(data) {
+    var tableBody = document.getElementById("table-body");
+
+    data.forEach(item => {
+        var row = document.createElement("tr");
+
+        for (var key in item) {
+            var cell = document.createElement("td");
+            cell.textContent = item[key];
+
+            if (key !== "Nome") {
+                cell.classList.add("month-cell");
+
+                // Verifique se o nome do mês está no primeiro semestre (Janeiro a Junho)
+                var monthNamesFirstSemester = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho"];
+                if (monthNamesFirstSemester.some(month => key.includes(month))) {
+                    cell.classList.add("first-semester");
+                }
+                // Verifique se o nome do mês está no segundo semestre (Julho a Dezembro)
+                var monthNamesSecondSemester = ["Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+                if (monthNamesSecondSemester.some(month => key.includes(month))) {
+                    cell.classList.add("second-semester");
+                }
+
+                EditableCell(cell, 2);
+            }
+
+            row.appendChild(cell);
+        }
+
+        tableBody.appendChild(row);
+    });
+}
+
+
+
+// Carregando o JSON e chamando a função para preencher a tabela
+fetch('/files/completed_table_data.json')
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Erro ao carregar completed_table_data.json');
+        }
+        return response.json();
+    })
+    .then(data => populateTable(data))
+    .then(() => showFirstSemester()) // Mostrar primeiro semestre por padrão
+    .catch(error => {
+        console.error('Erro ao carregar completed_table_data.json:', error);
+        // Tenta carregar table_data.json em caso de erro
+        fetch('/files/table_data.json')
+            .then(response => response.json())
+            .then(data => populateTable(data))
+            .then(() => showFirstSemester()) // Mostrar primeiro semestre por padrão
+            .catch(error => console.error('Erro ao carregar table_data.json:', error));
+    });
+            
+//Funções para ocultar as colunas do 1º e 2º Semestre
+function showFirstSemester() {
+    var secondSemesterCells = document.querySelectorAll(".second-semester");
+    secondSemesterCells.forEach(cell => {
+        cell.style.display = "none";
+    });
+
+    var firstSemesterCells = document.querySelectorAll(".first-semester");
+    firstSemesterCells.forEach(cell => {
+        cell.style.display = "";
+    });
+    
+    var firstSemesterButton = document.querySelector(".styled-semester-button:nth-child(2)");
+    firstSemesterButton.classList.add("selected");
+
+    var secondSemesterButton = document.querySelector(".styled-semester-button:nth-child(3)");
+    secondSemesterButton.classList.remove("selected");
+
+}
+
+function showSecondSemester() {
+    var firstSemesterCells = document.querySelectorAll(".first-semester");
+    firstSemesterCells.forEach(cell => {
+        cell.style.display = "none";
+    });
+
+    var secondSemesterCells = document.querySelectorAll(".second-semester");
+    secondSemesterCells.forEach(cell => {
+        cell.style.display = "";
+    });
+
+    var firstSemesterButton = document.querySelector(".styled-semester-button:nth-child(2)");
+    firstSemesterButton.classList.remove("selected");
+
+    var secondSemesterButton = document.querySelector(".styled-semester-button:nth-child(3)");
+    secondSemesterButton.classList.add("selected");
+}
+
+
+
+
+        // Função para mostrar a mensagem de "Tabela Salva" e depois escondê-la
+        function showSaveMessage() {
+            var message = document.getElementById("save-message");
+            message.classList.add("message-visible"); // Adicione a classe para tornar a mensagem visível
+
+            // Após 3 segundos, remova a classe para esconder a mensagem
+            setTimeout(function() {
+                message.classList.remove("message-visible");
+            }, 3000); // 3000 ms (3 segundos)
+        }
+
+        // Modifique sua função saveTableData() para chamar a função showSaveMessage() após salvar os dados
+        function saveTableData() {
+            // Reproduzir o som
+            var audioPlayer = document.getElementById("audio-player");
+            audioPlayer.play();
+            var tableData = [];
+            var rows = document.querySelectorAll("#table-body tr");
+
+            rows.forEach(row => {
+                var rowData = {};
+                var cells = row.querySelectorAll("td");
+                rowData.Nome = cells[0].textContent;
+
+                var monthNames = ["","Janeiro 1º Quin.", "Janeiro 2º Quin.", "Fevereiro 1º Quin.", "Fevereiro 2º Quin.", "Março 1º Quin.", "Março 2º Quin.", "Abril 1º Quin.", "Abril 2º Quin.", "Maio 1º Quin.", "Maio 2º Quin.", "Junho 1º Quin.", "Junho 2º Quin.",
+          "Julho 1º Quin.", "Julho 2º Quin.", "Agosto 1º Quin.", "Agosto 2º Quin.", "Setembro 1º Quin.", "Setembro 2º Quin.", "Outubro 1º Quin.", "Outubro 2º Quin.", "Novembro 1º Quin.", "Novembro 2º Quin.", "Dezembro 1º Quin.", "Dezembro 2º Quin."]
+
+
+                for (var i = 1; i < cells.length; i++) {
+                    rowData[monthNames[i]] = parseFloat(cells[i].textContent); // Convertendo para número
+                }
+
+                tableData.push(rowData);
+            });
+            // Agora você pode enviar a tableData para o servidor local
+
+            fetch('/save_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(tableData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Aqui você pode lidar com a resposta do servidor, se necessário
+                showSaveMessage(); // Mostrar a mensagem de "Tabela Salva"
+            })
+            .catch(error => console.error('Erro ao salvar os dados:', error));
+    }
+    </script>
+</head>
+
+<body>
+    <table>
+        <thead>
+            <tr>
+                <th>Nome</th>
+                <!-- ... (Primeiro Semestre) ... -->
+                <th class="first-semester">Janeiro 1º Quin.</th>
+                <th class="first-semester">Janeiro 2º Quin.</th>
+                <th class="first-semester">Fevereiro 1º Quin.</th>
+                <th class="first-semester">Fevereiro 2º Quin.</th>
+                <th class="first-semester">Março 1º Quin.</th>
+                <th class="first-semester">Março 2º Quin.</th>
+                <th class="first-semester">Abril 1º Quin.</th>
+                <th class="first-semester">Abril 2º Quin.</th>
+                <th class="first-semester">Maio 1º⠀ Quin.</th>
+                <th class="first-semester">Maio 2º⠀ Quin.  </th>
+                <th class="first-semester">Junho 1º Quin.</th>
+                <th class="first-semester">Junho 2º Quin.</th>
+
+                <!-- ... (Segundo Semestre) ... -->
+                <th class="second-semester">Julho 1º Quin.</th>
+                <th class="second-semester">Julho 2º Quin.</th>
+                <th class="second-semester">Agosto 1º Quin.</th>
+                <th class="second-semester">Agosto 2º Quin.</th>
+                <th class="second-semester">Setembro 1º Quin.</th>
+                <th class="second-semester">Setembro 2º Quin.</th>
+                <th class="second-semester">Outubro 1º Quin.</th>
+                <th class="second-semester">Outubro 2º Quin.</th>
+                <th class="second-semester">Novembro 1º Quin.</th>
+                <th class="second-semester">Novembro 2º Quin.</th>
+                <th class="second-semester">Dezembro 1º Quin.</th>
+                <th class="second-semester">Dezembro 2º Quin.</th>
+
+            </tr>
+        </thead>
+        <tbody id="table-body">
+        </tbody>
+    </table>
+    <div class="centered-container">
+        <button class="styled-button" onclick="saveTableData()">Salvar Dados</button>
+        <button class="styled-semester-button" onclick="showFirstSemester()">1º Semestre</button>
+        <button class="styled-semester-button" onclick="showSecondSemester()">2º Semestre</button>
+
+    </div>
+
+    <!-- Mensagem de "Tabela Salva" -->
+    <div class="message" id="save-message">Tabela Salva</div>
+</body>
+
+</html>
